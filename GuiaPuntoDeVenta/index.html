@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía Interactiva de TPV: Base de Datos y Comercialización</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Stone -->
+    <!-- Application Structure Plan: Se ha diseñado una aplicación de una sola página con navegación superior por pestañas (Visión General, Estructura, Flujo, Tecnologías, Plan). Esta estructura segmenta el contenido denso del informe en módulos temáticos y manejables. En lugar de un largo desplazamiento, el usuario puede saltar directamente a la sección de su interés. Se eligió esta arquitectura porque separa claramente los conceptos técnicos (estructura, flujo) de la estrategia de negocio (tecnologías, plan), lo que facilita una exploración enfocada y mejora la usabilidad al evitar la sobrecarga de información. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Estructura de tablas de la BD. -> Goal: Organizar/Informar. -> Viz/Method: Diagrama interactivo con HTML/CSS/JS. -> Interaction: Clic en cada tabla para ver sus campos. -> Justification: Un diagrama visual es más intuitivo que una lista para entender relaciones. -> Library: Vanilla JS.
+        - Report Info: Flujo de una transacción. -> Goal: Mostrar Proceso. -> Viz/Method: Stepper/Línea de tiempo visual. -> Interaction: Botones de "Siguiente/Anterior" para navegar los pasos. -> Justification: Descompone un proceso complejo en pasos digeribles. -> Library: Vanilla JS.
+        - Report Info: Comparación de tipos de BD. -> Goal: Comparar. -> Viz/Method: Gráfico de barras horizontales. -> Interaction: Tooltips al pasar el ratón. -> Justification: Facilita la comparación visual rápida de opciones. -> Library: Chart.js.
+        - Report Info: Pasos para comercializar. -> Goal: Organizar/Informar. -> Viz/Method: Acordeón colapsable. -> Interaction: Clic para expandir/colapsar cada paso. -> Justification: Presenta la información de forma ordenada y sin abrumar al usuario. -> Library: Vanilla JS.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f7f4;
+            color: #403d39;
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link.active {
+            border-bottom-color: #4a5568; /* a darker neutral gray */
+            color: #2d3748;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .db-table {
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            border: 2px solid #cbd5e1;
+        }
+        .db-table:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border-color: #4a5568;
+        }
+        .db-table.selected {
+            border-color: #2c5282;
+            background-color: #ebf8ff;
+        }
+        .accordion-header {
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .accordion-header:hover {
+            background-color: #e2e8f0;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-in-out;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <span class="font-bold text-xl text-gray-800">Guía TPV 🚀</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#" data-target="overview" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900">Visión General</a>
+                        <a href="#" data-target="structure" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900">Estructura BD</a>
+                        <a href="#" data-target="flow" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900">Flujo Transacción</a>
+                        <a href="#" data-target="tech" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900">Tecnologías</a>
+                        <a href="#" data-target="plan" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900">Plan Comercial</a>
+                    </div>
+                </div>
+                <div class="-mr-2 flex md:hidden">
+                    <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-500">
+                        <span class="sr-only">Abrir menú</span>
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#" data-target="overview" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-700">Visión General</a>
+                <a href="#" data-target="structure" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-700">Estructura BD</a>
+                <a href="#" data-target="flow" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-700">Flujo Transacción</a>
+                <a href="#" data-target="tech" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-700">Tecnologías</a>
+                <a href="#" data-target="plan" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-700">Plan Comercial</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <!-- Visión General Section -->
+        <section id="overview" class="content-section">
+            <div class="text-center mb-12">
+                <h1 class="text-4xl font-bold text-gray-800 mb-4">La Guía Interactiva para tu Software TPV</h1>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">Explora los componentes clave, desde la arquitectura de la base de datos hasta la estrategia de comercialización, para construir y lanzar un sistema de Punto de Venta exitoso.</p>
+            </div>
+            <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+                <h2 class="text-2xl font-bold text-gray-800 mb-3">¿Por qué es crucial la Base de Datos?</h2>
+                <p class="text-gray-700 leading-relaxed">
+                    La base de datos es el corazón de cualquier software de Punto de Venta (TPV). Es mucho más que un simple almacén de datos; es el motor que impulsa cada operación del negocio. Desde registrar una venta y actualizar el inventario en tiempo real, hasta generar reportes de ventas y gestionar la información de los clientes, todo depende de una base de datos bien estructurada, rápida y segura. Esta guía interactiva te ayudará a entender cómo diseñar esa base de datos y cómo transformar tu solución técnica en un producto comercial viable.
+                </p>
+            </div>
+        </section>
+
+        <!-- Estructura BD Section -->
+        <section id="structure" class="content-section">
+            <div class="text-center mb-12">
+                <h1 class="text-4xl font-bold text-gray-800 mb-4">Estructura de la Base de Datos Relacional</h1>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">Haz clic en cada tabla para explorar sus campos y entender su rol en el ecosistema del TPV. Las líneas indican las relaciones clave entre ellas.</p>
+            </div>
+
+            <div class="lg:flex lg:space-x-8">
+                <div class="lg:w-2/3 relative">
+                     <!-- Lines for relationships -->
+                    <div class="absolute top-1/4 left-1/4 w-1/4 h-px bg-gray-300 hidden lg:block"></div>
+                    <div class="absolute top-1/2 left-1/4 w-px h-1/4 bg-gray-300 hidden lg:block"></div>
+                    <div class="absolute top-1/2 right-1/4 w-1/4 h-px bg-gray-300 hidden lg:block"></div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="flex justify-center items-center"><div id="table-Productos" class="db-table p-4 rounded-lg bg-white w-full text-center">📦 Productos</div></div>
+                        <div class="flex justify-center items-center"><div id="table-Inventario" class="db-table p-4 rounded-lg bg-white w-full text-center">📋 Inventario</div></div>
+                        <div class="flex justify-center items-center"><div id="table-Clientes" class="db-table p-4 rounded-lg bg-white w-full text-center">👥 Clientes</div></div>
+                        
+                        <div class="col-span-1 md:col-span-3 flex justify-center items-center my-4">
+                            <div class="w-full md:w-1/3 text-center">
+                                <div id="table-Detalle_Venta" class="db-table p-4 rounded-lg bg-white">🛒 Detalle Venta</div>
+                                <div class="w-px h-6 bg-gray-300 mx-auto"></div>
+                                <div id="table-Ventas" class="db-table p-4 rounded-lg bg-white">🧾 Ventas</div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-center items-center"><div id="table-Empleados" class="db-table p-4 rounded-lg bg-white w-full text-center">👨‍💼 Empleados</div></div>
+                        <div class="flex justify-center items-center"><div id="table-Usuarios" class="db-table p-4 rounded-lg bg-white w-full text-center">🔑 Usuarios</div></div>
+                        <div class="flex justify-center items-center"><div id="table-Roles" class="db-table p-4 rounded-lg bg-white w-full text-center">🛡️ Roles</div></div>
+                    </div>
+                </div>
+
+                <div id="details-panel" class="lg:w-1/3 mt-8 lg:mt-0 p-6 bg-white rounded-xl shadow-lg border border-gray-200 min-h-[300px]">
+                    <h3 id="details-title" class="text-2xl font-bold text-gray-800 mb-4">Selecciona una tabla</h3>
+                    <p id="details-description" class="text-gray-600 mb-4">Aquí verás los detalles de la tabla seleccionada.</p>
+                    <ul id="details-fields" class="space-y-2 text-sm">
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Flujo Transacción Section -->
+        <section id="flow" class="content-section">
+             <div class="text-center mb-12">
+                <h1 class="text-4xl font-bold text-gray-800 mb-4">Flujo de una Transacción</h1>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">Sigue el viaje de los datos durante una venta, desde el inicio de sesión del empleado hasta la actualización final del inventario.</p>
+            </div>
+            <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+                <div id="flow-steps-container" class="flex justify-between items-center mb-8 border-b-2 pb-4">
+                    <!-- Flow steps will be injected here -->
+                </div>
+                <div class="flex flex-col md:flex-row items-center gap-8">
+                    <div id="flow-icon" class="text-6xl mb-4 md:mb-0"></div>
+                    <div class="text-left">
+                        <h3 id="flow-title" class="text-2xl font-bold text-gray-800 mb-2"></h3>
+                        <p id="flow-description" class="text-gray-700 leading-relaxed"></p>
+                    </div>
+                </div>
+                <div class="flex justify-center mt-8 space-x-4">
+                    <button id="prev-step" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg transition-colors">Anterior</button>
+                    <button id="next-step" class="bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-lg transition-colors">Siguiente</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tecnologías Section -->
+        <section id="tech" class="content-section">
+             <div class="text-center mb-12">
+                <h1 class="text-4xl font-bold text-gray-800 mb-4">Tecnologías de Base de Datos</h1>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">Compara las opciones más comunes para tu TPV. La elección correcta depende de tu escala, presupuesto y modelo de negocio.</p>
+            </div>
+            <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+                 <div class="chart-container">
+                    <canvas id="techChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Plan Comercial Section -->
+        <section id="plan" class="content-section">
+            <div class="text-center mb-12">
+                <h1 class="text-4xl font-bold text-gray-800 mb-4">Plan de Comercialización</h1>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">Transformar un buen software en un negocio exitoso requiere una estrategia clara. Explora los pasos clave para lanzar tu TPV al mercado.</p>
+            </div>
+            <div id="accordion-container" class="space-y-4">
+                <!-- Accordion items will be injected here -->
+            </div>
+        </section>
+
+    </main>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- DATA ---
+            const dbData = {
+                "Productos": {
+                    description: "Almacena toda la información sobre los artículos que vende el negocio.",
+                    fields: ["ID_Producto (PK)", "Nombre_Producto", "Descripción", "Precio_Venta", "Costo_Unitario", "Categoría_ID (FK)", "Código_Barras", "Activo"]
+                },
+                "Inventario": {
+                    description: "Gestiona las existencias de cada producto para evitar ventas sin stock.",
+                    fields: ["ID_Inventario (PK)", "ID_Producto (FK)", "Cantidad_Disponible", "Ubicación_Almacen", "Fecha_Ultima_Actualizacion", "Punto_Reorden"]
+                },
+                "Ventas": {
+                    description: "Registra la cabecera de cada transacción, sirviendo como un recibo maestro.",
+                    fields: ["ID_Venta (PK)", "Fecha_Venta", "Hora_Venta", "ID_Cliente (FK)", "ID_Empleado (FK)", "Total_Venta", "Tipo_Pago", "Estado_Venta"]
+                },
+                "Detalle_Venta": {
+                    description: "Conecta las Ventas con los Productos, detallando qué artículos y en qué cantidad se vendieron en cada transacción.",
+                    fields: ["ID_Detalle_Venta (PK)", "ID_Venta (FK)", "ID_Producto (FK)", "Cantidad", "Precio_Unitario_Al_Momento_Venta", "Subtotal_Linea"]
+                },
+                "Clientes": {
+                    description: "Contiene la información de los clientes para programas de lealtad, marketing y facturación.",
+                    fields: ["ID_Cliente (PK)", "Nombre", "Apellido", "Email", "Telefono", "Direccion", "Fecha_Registro"]
+                },
+                "Empleados": {
+                    description: "Gestiona la información del personal que opera el sistema.",
+                    fields: ["ID_Empleado (PK)", "Nombre", "Apellido", "ID_Usuario (FK)", "Puesto", "Salario"]
+                },
+                "Usuarios": {
+                    description: "Controla el acceso al software. Separa las credenciales de la información del empleado.",
+                    fields: ["ID_Usuario (PK)", "Nombre_Usuario", "Contrasena_Hash", "ID_Rol (FK)"]
+                },
+                "Roles": {
+                    description: "Define los niveles de permiso (ej. Cajero, Gerente) para controlar el acceso a distintas funciones.",
+                    fields: ["ID_Rol (PK)", "Nombre_Rol", "Permisos"]
+                }
+            };
+            
+            const flowData = [
+                {
+                    title: "1. Inicio de Sesión",
+                    description: "El empleado introduce su usuario y contraseña. El sistema verifica las credenciales en la tabla 'Usuarios' y comprueba sus permisos en la tabla 'Roles'.",
+                    icon: "🔑"
+                },
+                {
+                    title: "2. Agregar Productos a la Venta",
+                    description: "Al escanear un producto, el sistema busca su información (nombre, precio) en la tabla 'Productos' y verifica la 'Cantidad_Disponible' en 'Inventario'.",
+                    icon: "🛒"
+                },
+                {
+                    title: "3. Finalizar Venta",
+                    description: "El sistema crea un nuevo registro en la tabla 'Ventas' con el total, la fecha y el empleado. Se genera un ID_Venta único.",
+                    icon: "🧾"
+                },
+                {
+                    title: "4. Registrar Detalles de la Venta",
+                    description: "Por cada tipo de producto en el carrito, se crea una fila en 'Detalle_Venta' que enlaza el ID_Venta con el ID_Producto, la cantidad y el precio.",
+                    icon: "✍️"
+                },
+                {
+                    title: "5. Actualizar Inventario",
+                    description: "Finalmente, el sistema resta la cantidad vendida de cada producto de la 'Cantidad_Disponible' en la tabla 'Inventario', manteniendo el stock al día.",
+                    icon: "📉"
+                }
+            ];
+            
+            const planData = [
+                 {
+                    title: "1. Define tu Nicho y Propuesta de Valor",
+                    content: "¿Para qué tipo de negocios es tu TPV (minoristas, restaurantes, servicios)? ¿Qué problema principal resuelve tu TPV mejor que la competencia? (Ej. más fácil de usar, más barato, mejores reportes, especialización en un sector)."
+                },
+                {
+                    title: "2. Desarrolla un Producto Mínimo Viable (MVP)",
+                    content: "Crea las funcionalidades esenciales: registro de ventas, gestión de productos, inventario básico e inicio de sesión. No intentes tener todas las funciones desde el principio. Céntrate en lo más valioso para tus primeros clientes."
+                },
+                {
+                    title: "3. Elige tu Pila Tecnológica",
+                    content: "Define tu backend (Python con Flask/Django), frontend (Tkinter, React, Vue) y base de datos (SQLite, PostgreSQL). La elección debe basarse en la escalabilidad y el modelo de despliegue que visualices."
+                },
+                {
+                    title: "4. Realiza Pruebas Rigurosas",
+                    content: "Prueba exhaustivamente todas las funcionalidades. Realiza pruebas de rendimiento y estrés para asegurar que la base de datos y la aplicación pueden manejar la carga. Prueba en diferentes dispositivos y escenarios."
+                },
+                {
+                    title: "5. Plan de Despliegue e Instalación",
+                    content: "¿Cómo se instalará el software en las computadoras de tus clientes? ¿Necesitará una conexión a internet constante? ¿Cómo gestionarás las actualizaciones de software y base de datos?"
+                },
+                {
+                    title: "6. Estrategia de Precios y Modelo de Negocio",
+                    content: "¿Será una licencia única, una suscripción mensual/anual (SaaS), un pago por número de usuarios, o tendrás diferentes planes (Básico, Premium)? Define tu modelo de ingresos."
+                },
+                {
+                    title: "7. Soporte al Cliente",
+                    content: "Define cómo ayudarás a tus clientes cuando tengan problemas (teléfono, email, chat, base de conocimientos). Un buen soporte es clave para la retención y la satisfacción del cliente."
+                },
+                {
+                    title: "8. Marketing y Ventas",
+                    content: "Crea una página web que describa tu producto. Utiliza redes sociales y marketing de contenidos. Considera ofrecer demostraciones en vivo o versiones de prueba gratuitas para atraer a tus primeros clientes."
+                }
+            ];
+
+            // --- NAVIGATION ---
+            const navLinks = document.querySelectorAll('.nav-link');
+            const contentSections = document.querySelectorAll('.content-section');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+
+            function switchTab(targetId) {
+                contentSections.forEach(section => {
+                    section.classList.toggle('active', section.id === targetId);
+                });
+                navLinks.forEach(link => {
+                    link.classList.toggle('active', link.dataset.target === targetId);
+                });
+                mobileMenu.classList.add('hidden');
+                
+                if (targetId === 'tech') {
+                    renderTechChart();
+                }
+            }
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    switchTab(link.dataset.target);
+                });
+            });
+
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            switchTab('overview');
+
+            // --- DB STRUCTURE INTERACTION ---
+            const dbTables = document.querySelectorAll('.db-table');
+            const detailsTitle = document.getElementById('details-title');
+            const detailsDescription = document.getElementById('details-description');
+            const detailsFields = document.getElementById('details-fields');
+
+            dbTables.forEach(table => {
+                table.addEventListener('click', () => {
+                    const tableId = table.id.split('-')[1];
+                    const data = dbData[tableId];
+
+                    dbTables.forEach(t => t.classList.remove('selected'));
+                    table.classList.add('selected');
+
+                    detailsTitle.textContent = tableId.replace('_', ' ');
+                    detailsDescription.textContent = data.description;
+                    detailsFields.innerHTML = '';
+                    data.fields.forEach(field => {
+                        const li = document.createElement('li');
+                        li.className = "flex items-center bg-gray-50 p-2 rounded-md";
+                        const isPk = field.includes('(PK)');
+                        const isFk = field.includes('(FK)');
+                        let icon = '📄';
+                        if (isPk) icon = '👑';
+                        if (isFk) icon = '🔗';
+                        
+                        li.innerHTML = `<span class="mr-2 text-lg">${icon}</span> ${field}`;
+                        detailsFields.appendChild(li);
+                    });
+                });
+            });
+
+            // --- TRANSACTION FLOW INTERACTION ---
+            const flowStepsContainer = document.getElementById('flow-steps-container');
+            const flowIcon = document.getElementById('flow-icon');
+            const flowTitle = document.getElementById('flow-title');
+            const flowDescription = document.getElementById('flow-description');
+            const prevStepBtn = document.getElementById('prev-step');
+            const nextStepBtn = document.getElementById('next-step');
+            let currentStep = 0;
+
+            flowData.forEach((step, index) => {
+                const stepEl = document.createElement('div');
+                stepEl.className = 'flow-step-indicator text-center text-gray-500 transition-colors';
+                stepEl.dataset.index = index;
+                stepEl.innerHTML = `<div class="text-2xl mb-1">${step.icon}</div><div class="text-xs font-medium">${step.title}</div>`;
+                flowStepsContainer.appendChild(stepEl);
+            });
+            const flowStepIndicators = document.querySelectorAll('.flow-step-indicator');
+
+            function updateFlowStep(index) {
+                const step = flowData[index];
+                flowIcon.textContent = step.icon;
+                flowTitle.textContent = step.title;
+                flowDescription.textContent = step.description;
+
+                flowStepIndicators.forEach((indicator, i) => {
+                     indicator.classList.toggle('text-gray-800', i <= index);
+                     indicator.classList.toggle('font-bold', i === index);
+                });
+
+                prevStepBtn.disabled = index === 0;
+                nextStepBtn.disabled = index === flowData.length - 1;
+                prevStepBtn.classList.toggle('opacity-50', index === 0);
+                nextStepBtn.classList.toggle('opacity-50', index === flowData.length - 1);
+            }
+
+            prevStepBtn.addEventListener('click', () => {
+                if (currentStep > 0) {
+                    currentStep--;
+                    updateFlowStep(currentStep);
+                }
+            });
+            nextStepBtn.addEventListener('click', () => {
+                if (currentStep < flowData.length - 1) {
+                    currentStep++;
+                    updateFlowStep(currentStep);
+                }
+            });
+
+            updateFlowStep(0);
+            
+             // --- TECH CHART ---
+            let techChartInstance = null;
+            function renderTechChart() {
+                if (techChartInstance) {
+                    techChartInstance.destroy();
+                }
+                const ctx = document.getElementById('techChart').getContext('2d');
+                techChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['SQLite', 'PostgreSQL / MySQL', 'MS SQL Server / Oracle'],
+                        datasets: [
+                            {
+                                label: 'Escalabilidad',
+                                data: [3, 8, 10],
+                                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Facilidad de Uso (Inicial)',
+                                data: [9, 6, 4],
+                                backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Costo',
+                                data: [10, 8, 2],
+                                backgroundColor: 'rgba(255, 206, 86, 0.6)',
+                                borderColor: 'rgba(255, 206, 86, 1)',
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Comparativa de Bases de Datos (Escala 1-10)',
+                                font: { size: 16 }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    footer: function(tooltipItems) {
+                                        const db = tooltipItems[0].label;
+                                        if (db === 'SQLite') return 'Ideal para prototipos y apps locales.';
+                                        if (db === 'PostgreSQL / MySQL') return 'Perfecto para soluciones en la nube y multi-terminal.';
+                                        if (db === 'MS SQL Server / Oracle') return 'Para grandes corporaciones con alto presupuesto.';
+                                        return '';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                stacked: true,
+                                beginAtZero: true
+                            },
+                            y: {
+                                stacked: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            // --- ACCORDION ---
+            const accordionContainer = document.getElementById('accordion-container');
+            planData.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'bg-white border border-gray-200 rounded-lg overflow-hidden';
+                div.innerHTML = `
+                    <div class="accordion-header p-4 flex justify-between items-center">
+                        <h3 class="font-semibold text-lg text-gray-800">${index + 1}. ${item.title}</h3>
+                        <span class="accordion-icon text-2xl text-gray-500 transform transition-transform">-</span>
+                    </div>
+                    <div class="accordion-content">
+                        <p class="p-4 pt-0 text-gray-600">${item.content}</p>
+                    </div>
+                `;
+                accordionContainer.appendChild(div);
+            });
+            
+            accordionContainer.addEventListener('click', function(e) {
+                const header = e.target.closest('.accordion-header');
+                if (!header) return;
+
+                const content = header.nextElementSibling;
+                const icon = header.querySelector('.accordion-icon');
+                
+                if (content.style.maxHeight) {
+                    content.style.maxHeight = null;
+                    icon.style.transform = 'rotate(0deg)';
+
+                } else {
+                    document.querySelectorAll('.accordion-content').forEach(c => {
+                        c.style.maxHeight = null;
+                        c.previousElementSibling.querySelector('.accordion-icon').style.transform = 'rotate(0deg)';
+                    });
+                    content.style.maxHeight = content.scrollHeight + "px";
+                    icon.style.transform = 'rotate(45deg)';
+                }
+            });
+
+        });
+    </script>
+</body>
+</html>
